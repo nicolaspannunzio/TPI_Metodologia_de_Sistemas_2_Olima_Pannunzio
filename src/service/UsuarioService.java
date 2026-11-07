@@ -57,13 +57,12 @@ public class UsuarioService implements GenericService<Usuario> {
                 usuarioDao.crear(usuario);
 
                 conn.commit();
-            } catch (SQLException e) {
+                
+            }   catch (SQLException e) {
                 conn.rollback();
                 throw e;
-            } finally {
-                conn.setAutoCommit(true);
-                conn.close();
             }
+
         }
     }
 
