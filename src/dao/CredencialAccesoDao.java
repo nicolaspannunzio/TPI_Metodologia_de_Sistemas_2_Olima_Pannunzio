@@ -6,7 +6,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CredencialAccesoDao implements GenericDao<CredencialAcceso> {
-    private Connection conexion;
+
+    private static final String COLUMNAS =
+            "id_credencialAcceso, hashPassword, salt, ultimoCambio, requiereReset, eliminado";
+
+    private final Connection conexion;
 
     public CredencialAccesoDao(Connection conexion) {
         this.conexion = conexion;
@@ -31,19 +35,13 @@ public class CredencialAccesoDao implements GenericDao<CredencialAcceso> {
 
     @Override
     public CredencialAcceso leer(long id) throws SQLException {
-        String sql = "SELECT * FROM credencialesAcceso WHERE id_CredencialAcceso = ? AND eliminado = false";
+        String sql = "SELECT " + COLUMNAS + " FROM credencialesAcceso WHERE id_CredencialAcceso = ? AND eliminado = false";
         try (PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setLong(1, id);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                CredencialAcceso c = new CredencialAcceso();
-                c.setId(rs.getLong("id_CredencialAcceso"));
-                c.setHashPassword(rs.getString("hashPassword"));
-                c.setSalt(rs.getString("salt"));
-                c.setUltimoCambio(rs.getTimestamp("ultimoCambio").toLocalDateTime());
-                c.setRequiereReset(rs.getBoolean("requiereReset"));
-                c.setEliminado(rs.getBoolean("eliminado"));
-                return c;
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapearCredencial(rs);
+                }
             }
         }
         return null;
@@ -52,18 +50,11 @@ public class CredencialAccesoDao implements GenericDao<CredencialAcceso> {
     @Override
     public List<CredencialAcceso> leerTodos() throws SQLException {
         List<CredencialAcceso> lista = new ArrayList<>();
-        String sql = "SELECT * FROM credencialesAcceso WHERE eliminado = false";
+        String sql = "SELECT " + COLUMNAS + " FROM credencialesAcceso WHERE eliminado = false";
         try (PreparedStatement ps = conexion.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                CredencialAcceso c = new CredencialAcceso();
-                c.setId(rs.getLong("id_CredencialAcceso"));
-                c.setHashPassword(rs.getString("hashPassword"));
-                c.setSalt(rs.getString("salt"));
-                c.setUltimoCambio(rs.getTimestamp("ultimoCambio").toLocalDateTime());
-                c.setRequiereReset(rs.getBoolean("requiereReset"));
-                c.setEliminado(rs.getBoolean("eliminado"));
-                lista.add(c);
+                lista.add(mapearCredencial(rs));
             }
         }
         return lista;
@@ -90,5 +81,16 @@ public class CredencialAccesoDao implements GenericDao<CredencialAcceso> {
             ps.setLong(1, id);
             ps.executeUpdate();
         }
+    }
+
+    private CredencialAcceso mapearCredencial(ResultSet rs) throws SQLException {
+        CredencialAcceso c = new CredencialAcceso();
+        c.setId(rs.getLong("id_credencialAcceso"));
+        c.setHashPassword(rs.getString("hashPassword"));
+        c.setSalt(rs.getString("salt"));
+        c.setUltimoCambio(rs.getTimestamp("ultimoCambio").toLocalDateTime());
+        c.setRequiereReset(rs.getBoolean("requiereReset"));
+        c.setEliminado(rs.getBoolean("eliminado"));
+        return c;
     }
 }
