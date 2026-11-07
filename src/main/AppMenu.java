@@ -5,12 +5,11 @@ import entities.CredencialAcceso;
 import service.UsuarioService;
 import service.CredencialAccesoService;
 
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import service.dto.AltaUsuario;
+import service.exceptions.PersistenciaException;
 import service.exceptions.RegistroNoEncontradoException;
-
 
 public class AppMenu {
 
@@ -69,11 +68,10 @@ public class AppMenu {
             ui.mostrar("Usuario creado con exito.");
         } catch (IllegalArgumentException e) {
             ui.mostrar("Error al crear usuario: " + e.getMessage());
-        } catch (SQLException e) {
+        } catch (PersistenciaException e) {
             ui.error("Error al crear usuario: " + e.getMessage());
         }
     }
-
 
     private void listarUsuarios() {
         try {
@@ -86,7 +84,7 @@ public class AppMenu {
                     ui.mostrar(u.toString());
                 }
             }
-        } catch (SQLException e) {
+        } catch (PersistenciaException e) {
             ui.error("Error al listar usuarios: " + e.getMessage());
         }
     }
@@ -103,11 +101,10 @@ public class AppMenu {
             } else {
                 ui.mostrar("Usuario no encontrado.");
             }
-        } catch (SQLException e) {
+        } catch (PersistenciaException e) {
             ui.error("Error al buscar usuario: " + e.getMessage());
         }
     }
-
 
     private void actualizarUsuario() {
         try {
@@ -131,11 +128,10 @@ public class AppMenu {
             usuarioService.actualizar(u);
             credencialService.actualizar(c);
             ui.mostrar("Usuario actualizado con exito.");
-        } catch (SQLException | IllegalArgumentException e) {
+        } catch (PersistenciaException | IllegalArgumentException e) {
             ui.error("Error al actualizar usuario: " + e.getMessage());
         }
     }
-
 
     private void eliminarUsuario() {
         try {
@@ -146,7 +142,7 @@ public class AppMenu {
             usuarioService.eliminar(id);
             credencialService.eliminar(id);
             ui.mostrar("Usuario eliminado (baja logica).");
-        } catch (SQLException | RegistroNoEncontradoException e) {
+        } catch (PersistenciaException | RegistroNoEncontradoException e) {
             ui.error("Error al eliminar usuario: " + e.getMessage());
         }
     }

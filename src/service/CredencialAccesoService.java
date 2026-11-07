@@ -1,57 +1,58 @@
 package service;
 
+import config.DatabaseConnection;
 import dao.CredencialAccesoDao;
 import entities.CredencialAcceso;
-import config.DatabaseConnection;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import service.exceptions.PersistenciaException;
 import service.exceptions.RegistroNoEncontradoException;
 
 public class CredencialAccesoService implements GenericService<CredencialAcceso> {
 
-    public CredencialAccesoService() {
-    }
-    
     @Override
-    public void insertar(CredencialAcceso c) throws SQLException {
+    public void insertar(CredencialAcceso credencial) {
         try (Connection conn = DatabaseConnection.getConnection()) {
-            CredencialAccesoDao dao = new CredencialAccesoDao(conn);
-            c.setUltimoCambio(LocalDateTime.now());
-            dao.crear(c);
+            credencial.setUltimoCambio(LocalDateTime.now());
+            new CredencialAccesoDao(conn).crear(credencial);
+        } catch (SQLException e) {
+            throw new PersistenciaException("No se pudo crear la credencial.", e);
         }
     }
 
     @Override
-    public CredencialAcceso getById(long id) throws SQLException {
+    public CredencialAcceso getById(long id) {
         try (Connection conn = DatabaseConnection.getConnection()) {
-            CredencialAccesoDao dao = new CredencialAccesoDao(conn);
-            return dao.leer(id);
+            return new CredencialAccesoDao(conn).leer(id);
+        } catch (SQLException e) {
+            throw new PersistenciaException("No se pudo leer la credencial con id " + id + ".", e);
         }
     }
 
     @Override
-    public List<CredencialAcceso> getAll() throws SQLException {
+    public List<CredencialAcceso> getAll() {
         try (Connection conn = DatabaseConnection.getConnection()) {
-            CredencialAccesoDao dao = new CredencialAccesoDao(conn);
-            return dao.leerTodos();
+            return new CredencialAccesoDao(conn).leerTodos();
+        } catch (SQLException e) {
+            throw new PersistenciaException("No se pudo listar las credenciales.", e);
         }
     }
 
     @Override
-    public void actualizar(CredencialAcceso c) throws SQLException {
+    public void actualizar(CredencialAcceso credencial) {
         try (Connection conn = DatabaseConnection.getConnection()) {
-            CredencialAccesoDao dao = new CredencialAccesoDao(conn);
-            dao.actualizar(c);
+            new CredencialAccesoDao(conn).actualizar(credencial);
+        } catch (SQLException e) {
+            throw new PersistenciaException("No se pudo actualizar la credencial.", e);
         }
     }
 
     @Override
-    public void eliminar(long id) throws SQLException, RegistroNoEncontradoException {
+    public void eliminar(long id) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             conn.setAutoCommit(false);
-
             try {
                 CredencialAccesoDao dao = new CredencialAccesoDao(conn);
                 if (dao.leer(id) != null) {
@@ -63,10 +64,10 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
                 }
             } catch (SQLException e) {
                 conn.rollback();
-                throw e;
-            }finally{
-                conn.setAutoCommit(true);
+                throw new PersistenciaException("No se pudo eliminar la credencial.", e);
             }
+        } catch (SQLException e) {
+            throw new PersistenciaException("No se pudo eliminar la credencial.", e);
         }
     }
 }

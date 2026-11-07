@@ -1,30 +1,30 @@
 package service;
 
 import config.DatabaseConnection;
-import dao.UsuarioDao;
 import dao.CredencialAccesoDao;
-import entities.Usuario;
+import dao.UsuarioDao;
 import entities.CredencialAcceso;
+import entities.Usuario;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import service.dto.AltaUsuario;
+import service.exceptions.PersistenciaException;
 import service.exceptions.RegistroNoEncontradoException;
 
 public class UsuarioService implements GenericService<Usuario> {
-    //Expresiones regulares para validar username y email.
-    //Contienen rangos de caracteres, de numeros, simbolos y longitud
+
     private static final String USERNAME_REGEX = "^[a-zA-Z0-9_.-]{4,30}$";
     private static final String EMAIL_REGEX = "^(?=.{1,120}$)[\\w\\.-]+@([\\w\\-]+\\.)+[a-zA-Z]{2,4}$";
 
-    public void insertar(AltaUsuario alta) throws SQLException {
-        CredencialAcceso cred = new CredencialAcceso();
-        cred.setHashPassword(alta.hashPassword());
-        cred.setSalt(alta.salt());
-        cred.setUltimoCambio(LocalDateTime.now());
-        cred.setRequiereReset(true);
-        cred.setEliminado(false);
+    public void insertar(AltaUsuario alta) {
+        CredencialAcceso credencial = new CredencialAcceso();
+        credencial.setHashPassword(alta.hashPassword());
+        credencial.setSalt(alta.salt());
+        credencial.setUltimoCambio(LocalDateTime.now());
+        credencial.setRequiereReset(true);
+        credencial.setEliminado(false);
 
         Usuario usuario = new Usuario();
         usuario.setUsername(alta.username());
@@ -32,67 +32,70 @@ public class UsuarioService implements GenericService<Usuario> {
         usuario.setActivo(true);
         usuario.setFechaRegistro(LocalDateTime.now());
         usuario.setEliminado(false);
-        usuario.setCredencial(cred);
+        usuario.setCredencial(credencial);
 
         insertar(usuario);
     }
 
     @Override
-    public void insertar(Usuario usuario) throws SQLException, IllegalArgumentException {
+    public void insertar(Usuario usuario) {
         validarEmail(usuario.getEmail());
         validarUsername(usuario.getUsername());
 
-        try (Connection conn = DatabaseConnection.getConnection();) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
             conn.setAutoCommit(false);
-
             try {
-                CredencialAccesoDao credDao = new CredencialAccesoDao(conn);
+                CredencialAccesoDao credencialDao = new CredencialAccesoDao(conn);
                 UsuarioDao usuarioDao = new UsuarioDao(conn);
 
-                CredencialAcceso cred = usuario.getCredencial();
-                cred.setUltimoCambio(LocalDateTime.now());
-                credDao.crear(cred);
+                CredencialAcceso credencial = usuario.getCredencial();
+                credencial.setUltimoCambio(LocalDateTime.now());
+                credencialDao.crear(credencial);
 
                 usuario.setFechaRegistro(LocalDateTime.now());
                 usuarioDao.crear(usuario);
 
                 conn.commit();
-                
-            }   catch (SQLException e) {
+            } catch (SQLException e) {
                 conn.rollback();
-                throw e;
+                throw new PersistenciaException("No se pudo crear el usuario.", e);
             }
-
+        } catch (SQLException e) {
+            throw new PersistenciaException("No se pudo crear el usuario.", e);
         }
     }
 
     @Override
-    public Usuario getById(long id) throws SQLException {
+    public Usuario getById(long id) {
         try (Connection conn = DatabaseConnection.getConnection()) {
-            UsuarioDao dao = new UsuarioDao(conn);
-            return dao.leer(id);
+            return new UsuarioDao(conn).leer(id);
+        } catch (SQLException e) {
+            throw new PersistenciaException("No se pudo leer el usuario con id " + id + ".", e);
         }
     }
 
     @Override
-    public List<Usuario> getAll() throws SQLException {
+    public List<Usuario> getAll() {
         try (Connection conn = DatabaseConnection.getConnection()) {
-            UsuarioDao dao = new UsuarioDao(conn);
-            return dao.leerTodos();
+            return new UsuarioDao(conn).leerTodos();
+        } catch (SQLException e) {
+            throw new PersistenciaException("No se pudo listar los usuarios.", e);
         }
     }
 
     @Override
-    public void actualizar(Usuario u) throws SQLException, IllegalArgumentException {
-        validarEmail(u.getEmail());
+    public void actualizar(Usuario usuario) {
+        validarEmail(usuario.getEmail());
+
         try (Connection conn = DatabaseConnection.getConnection()) {
-            UsuarioDao dao = new UsuarioDao(conn);
-            dao.actualizar(u);
+            new UsuarioDao(conn).actualizar(usuario);
+        } catch (SQLException e) {
+            throw new PersistenciaException("No se pudo actualizar el usuario.", e);
         }
     }
 
     @Override
-    public void eliminar(long id) throws SQLException, RegistroNoEncontradoException {
+    public void eliminar(long id) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             conn.setAutoCommit(false);
             try {
@@ -106,10 +109,10 @@ public class UsuarioService implements GenericService<Usuario> {
                 }
             } catch (SQLException e) {
                 conn.rollback();
-                throw e;
-            } finally {
-                conn.setAutoCommit(true);
+                throw new PersistenciaException("No se pudo eliminar el usuario.", e);
             }
+        } catch (SQLException e) {
+            throw new PersistenciaException("No se pudo eliminar el usuario.", e);
         }
     }
 
@@ -118,7 +121,6 @@ public class UsuarioService implements GenericService<Usuario> {
             throw new IllegalArgumentException("El nombre de usuario es obligatorio");
         }
 
-        // Validación de formato
         if (!username.matches(USERNAME_REGEX)) {
             throw new IllegalArgumentException("""
                                                El username solo puede contener letras, números, guiones, guiones bajos, puntos, 
@@ -131,7 +133,6 @@ public class UsuarioService implements GenericService<Usuario> {
             throw new IllegalArgumentException("El email es obligatorio");
         }
 
-        // Validación de formato y caracteres del email
         if (!email.matches(EMAIL_REGEX)) {
             throw new IllegalArgumentException("""
                                                \nEl email solo puede contener letras, números, guiones, guiones bajos y puntos,
