@@ -8,7 +8,9 @@ import service.CredencialAccesoService;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import service.dto.AltaUsuario;
 import service.exceptions.RegistroNoEncontradoException;
+
 
 public class AppMenu {
 
@@ -59,28 +61,11 @@ public class AppMenu {
         ui.mostrar("\n--- Crear nuevo usuario ---");
         String username = ui.leerTexto("Username: ");
         String email = ui.leerTexto("Email: ");
-        boolean activo = true;
-
         String hash = ui.leerTexto("Hash Password: ");
         String salt = ui.leerTexto("Salt: ");
 
-        CredencialAcceso cred = new CredencialAcceso();
-        cred.setHashPassword(hash);
-        cred.setSalt(salt);
-        cred.setUltimoCambio(LocalDateTime.now());
-        cred.setRequiereReset(true);
-        cred.setEliminado(false);
-
-        Usuario u = new Usuario();
-        u.setUsername(username);
-        u.setEmail(email);
-        u.setActivo(activo);
-        u.setFechaRegistro(LocalDateTime.now());
-        u.setEliminado(false);
-        u.setCredencial(cred);
-
         try {
-            usuarioService.insertar(u);
+            usuarioService.insertar(new AltaUsuario(username, email, hash, salt));
             ui.mostrar("Usuario creado con exito.");
         } catch (IllegalArgumentException e) {
             ui.mostrar("Error al crear usuario: " + e.getMessage());
@@ -88,6 +73,7 @@ public class AppMenu {
             ui.error("Error al crear usuario: " + e.getMessage());
         }
     }
+
 
     private void listarUsuarios() {
         try {
