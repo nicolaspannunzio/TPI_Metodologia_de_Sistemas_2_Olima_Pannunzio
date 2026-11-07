@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import service.dto.AltaUsuario;
 import service.exceptions.RegistroNoEncontradoException;
 
 public class UsuarioService implements GenericService<Usuario> {
@@ -16,6 +17,25 @@ public class UsuarioService implements GenericService<Usuario> {
     //Contienen rangos de caracteres, de numeros, simbolos y longitud
     private static final String USERNAME_REGEX = "^[a-zA-Z0-9_.-]{4,30}$";
     private static final String EMAIL_REGEX = "^(?=.{1,120}$)[\\w\\.-]+@([\\w\\-]+\\.)+[a-zA-Z]{2,4}$";
+
+    public void insertar(AltaUsuario alta) throws SQLException {
+        CredencialAcceso cred = new CredencialAcceso();
+        cred.setHashPassword(alta.hashPassword());
+        cred.setSalt(alta.salt());
+        cred.setUltimoCambio(LocalDateTime.now());
+        cred.setRequiereReset(true);
+        cred.setEliminado(false);
+
+        Usuario usuario = new Usuario();
+        usuario.setUsername(alta.username());
+        usuario.setEmail(alta.email());
+        usuario.setActivo(true);
+        usuario.setFechaRegistro(LocalDateTime.now());
+        usuario.setEliminado(false);
+        usuario.setCredencial(cred);
+
+        insertar(usuario);
+    }
 
     @Override
     public void insertar(Usuario usuario) throws SQLException, IllegalArgumentException {
