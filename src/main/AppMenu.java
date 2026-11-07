@@ -109,58 +109,57 @@ public class AppMenu {
         try {
             long id = ui.leerId(PROMPT_ID_BUSCAR);
             if (id == 0) {
-                this.mostrarMenu();
+                return;
+            }
+            Usuario u = usuarioService.getById(id);
+            if (u != null) {
+                ui.mostrar(u.toString());
             } else {
-                Usuario u = usuarioService.getById(id);
-                if (u != null) {
-                    ui.mostrar(u.toString());
-                } else {
-                    ui.mostrar("Usuario no encontrado.");
-                }
+                ui.mostrar("Usuario no encontrado.");
             }
         } catch (SQLException e) {
             ui.error("Error al buscar usuario: " + e.getMessage());
         }
     }
 
+
     private void actualizarUsuario() {
         try {
             long id = ui.leerId(PROMPT_ID_ACTUALIZAR);
             if (id == 0) {
-                this.mostrarMenu();
-            } else {
-                Usuario u = usuarioService.getById(id);
-                CredencialAcceso c = credencialService.getById(id);
-                if (u == null) {
-                    ui.mostrar("Usuario no encontrado.");
-                    return;
-                }
-
-                u.setEmail(ui.leerTexto("Nuevo email: "));
-                u.setActivo(Boolean.parseBoolean(ui.leerTexto("Activo? (true/false): ")));
-                u.setFechaRegistro(LocalDateTime.now());
-
-                c.setUltimoCambio(LocalDateTime.now());
-
-                usuarioService.actualizar(u);
-                credencialService.actualizar(c);
-                ui.mostrar("Usuario actualizado con exito.");
+                return;
             }
+            Usuario u = usuarioService.getById(id);
+            CredencialAcceso c = credencialService.getById(id);
+            if (u == null) {
+                ui.mostrar("Usuario no encontrado.");
+                return;
+            }
+
+            u.setEmail(ui.leerTexto("Nuevo email: "));
+            u.setActivo(Boolean.parseBoolean(ui.leerTexto("Activo? (true/false): ")));
+            u.setFechaRegistro(LocalDateTime.now());
+
+            c.setUltimoCambio(LocalDateTime.now());
+
+            usuarioService.actualizar(u);
+            credencialService.actualizar(c);
+            ui.mostrar("Usuario actualizado con exito.");
         } catch (SQLException | IllegalArgumentException e) {
             ui.error("Error al actualizar usuario: " + e.getMessage());
         }
     }
 
+
     private void eliminarUsuario() {
         try {
             long id = ui.leerId(PROMPT_ID_ELIMINAR);
             if (id == 0) {
-                this.mostrarMenu();
-            } else {
-                usuarioService.eliminar(id);
-                credencialService.eliminar(id);
-                ui.mostrar("Usuario eliminado (baja logica).");
+                return;
             }
+            usuarioService.eliminar(id);
+            credencialService.eliminar(id);
+            ui.mostrar("Usuario eliminado (baja logica).");
         } catch (SQLException | RegistroNoEncontradoException e) {
             ui.error("Error al eliminar usuario: " + e.getMessage());
         }
