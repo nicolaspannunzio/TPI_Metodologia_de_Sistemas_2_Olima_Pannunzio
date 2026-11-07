@@ -57,9 +57,10 @@ public class UsuarioService implements GenericService<Usuario> {
 
                 conn.commit();
             } catch (SQLException e) {
-                conn.rollback();
-                throw new PersistenciaException("No se pudo crear el usuario.", e);
+                revertir(conn, e);
+                throw e;
             }
+
         } catch (SQLException e) {
             throw new PersistenciaException("No se pudo crear el usuario.", e);
         }
@@ -94,25 +95,68 @@ public class UsuarioService implements GenericService<Usuario> {
         }
     }
 
-    @Override
-    public void eliminar(long id) {
+    public void actualizarConCredencial(Usuario usuario) {
+        validarEmail(usuario.getEmail());
+        if (usuario.getCredencial() == null || usuario.getCredencial().getId() == null) {
+            throw new RegistroNoEncontradoException("El usuario no tiene una credencial asociada.");
+        }
+
         try (Connection conn = DatabaseConnection.getConnection()) {
             conn.setAutoCommit(false);
             try {
-                UsuarioDao dao = new UsuarioDao(conn);
-                if (dao.leer(id) != null) {
-                    dao.eliminar(id);
-                    conn.commit();
-                } else {
-                    conn.rollback();
-                    throw new RegistroNoEncontradoException("El usuario con id " + id + " no existe.");
+                UsuarioDao usuarioDao = new UsuarioDao(conn);
+                CredencialAccesoDao credencialDao = new CredencialAccesoDao(conn);
+
+                CredencialAcceso credencial = credencialDao.leer(usuario.getCredencial().getId());
+                if (credencial == null) {
+                    throw new RegistroNoEncontradoException("La credencial del usuario no existe.");
                 }
-            } catch (SQLException e) {
-                conn.rollback();
-                throw new PersistenciaException("No se pudo eliminar el usuario.", e);
+                credencial.setUltimoCambio(LocalDateTime.now());
+
+                usuarioDao.actualizar(usuario);
+                credencialDao.actualizar(credencial);
+
+                conn.commit();
+            } catch (SQLException | RuntimeException e) {
+                revertir(conn, e);
+                throw e;
             }
         } catch (SQLException e) {
+            throw new PersistenciaException("No se pudo actualizar el usuario y su credencial.", e);
+        }
+    }
+
+    @Override
+        public void eliminar(long id) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            new UsuarioDao(conn).eliminar(id);
+        } catch (SQLException e) {
             throw new PersistenciaException("No se pudo eliminar el usuario.", e);
+        }
+    }
+
+    public void eliminarConCredencial(long idUsuario) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                UsuarioDao usuarioDao = new UsuarioDao(conn);
+                CredencialAccesoDao credencialDao = new CredencialAccesoDao(conn);
+
+                Usuario usuario = usuarioDao.leer(idUsuario);
+                if (usuario == null) {
+                    throw new RegistroNoEncontradoException("El usuario con id " + idUsuario + " no existe.");
+                }
+
+                usuarioDao.eliminar(idUsuario);
+                credencialDao.eliminar(usuario.getCredencial().getId());
+
+                conn.commit();
+            } catch (SQLException | RuntimeException e) {
+                revertir(conn, e);
+                throw e;
+            }
+        } catch (SQLException e) {
+            throw new PersistenciaException("No se pudo eliminar el usuario y su credencial.", e);
         }
     }
 
@@ -137,6 +181,14 @@ public class UsuarioService implements GenericService<Usuario> {
             throw new IllegalArgumentException("""
                                                \nEl email solo puede contener letras, números, guiones, guiones bajos y puntos,
                                                no debe contener espacios y debe tener entre 4 y 120 caracteres.""");
+        }
+    }
+    
+    private static void revertir(Connection conn, Exception causa) {
+        try {
+            conn.rollback();
+        } catch (SQLException rollbackError) {
+            causa.addSuppressed(rollbackError);
         }
     }
 }

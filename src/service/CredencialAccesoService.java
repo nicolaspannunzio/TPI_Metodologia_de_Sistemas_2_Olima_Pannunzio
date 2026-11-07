@@ -55,19 +55,26 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
             conn.setAutoCommit(false);
             try {
                 CredencialAccesoDao dao = new CredencialAccesoDao(conn);
-                if (dao.leer(id) != null) {
-                    dao.eliminar(id);
-                    conn.commit();
-                } else {
-                    conn.rollback();
+                if (dao.leer(id) == null) {
                     throw new RegistroNoEncontradoException("La credencial con id " + id + " no existe.");
                 }
-            } catch (SQLException e) {
-                conn.rollback();
-                throw new PersistenciaException("No se pudo eliminar la credencial.", e);
+                dao.eliminar(id);
+                conn.commit();
+            } catch (SQLException | RuntimeException e) {
+                revertir(conn, e);
+                throw e;
             }
         } catch (SQLException e) {
             throw new PersistenciaException("No se pudo eliminar la credencial.", e);
         }
     }
+    
+    private static void revertir(Connection conn, Exception causa) {
+        try {
+            conn.rollback();
+        } catch (SQLException rollbackError) {
+            causa.addSuppressed(rollbackError);
+        }
+    }
+
 }

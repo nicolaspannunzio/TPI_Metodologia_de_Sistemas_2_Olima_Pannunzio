@@ -1,15 +1,13 @@
 package main;
 
 import entities.Usuario;
-import entities.CredencialAcceso;
 import service.UsuarioService;
-import service.CredencialAccesoService;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import service.dto.AltaUsuario;
 import service.exceptions.PersistenciaException;
 import service.exceptions.RegistroNoEncontradoException;
+
 
 public class AppMenu {
 
@@ -19,13 +17,12 @@ public class AppMenu {
 
     private final ConsolaUI ui;
     private final UsuarioService usuarioService;
-    private final CredencialAccesoService credencialService;
 
     public AppMenu(ConsolaUI ui) {
         this.ui = ui;
         this.usuarioService = new UsuarioService();
-        this.credencialService = new CredencialAccesoService();
     }
+
 
     public void mostrarMenu() {
         int opcion;
@@ -113,7 +110,6 @@ public class AppMenu {
                 return;
             }
             Usuario u = usuarioService.getById(id);
-            CredencialAcceso c = credencialService.getById(id);
             if (u == null) {
                 ui.mostrar("Usuario no encontrado.");
                 return;
@@ -121,17 +117,14 @@ public class AppMenu {
 
             u.setEmail(ui.leerTexto("Nuevo email: "));
             u.setActivo(Boolean.parseBoolean(ui.leerTexto("Activo? (true/false): ")));
-            u.setFechaRegistro(LocalDateTime.now());
 
-            c.setUltimoCambio(LocalDateTime.now());
-
-            usuarioService.actualizar(u);
-            credencialService.actualizar(c);
+            usuarioService.actualizarConCredencial(u);
             ui.mostrar("Usuario actualizado con exito.");
         } catch (PersistenciaException | IllegalArgumentException e) {
             ui.error("Error al actualizar usuario: " + e.getMessage());
         }
     }
+
 
     private void eliminarUsuario() {
         try {
@@ -139,11 +132,11 @@ public class AppMenu {
             if (id == 0) {
                 return;
             }
-            usuarioService.eliminar(id);
-            credencialService.eliminar(id);
+            usuarioService.eliminarConCredencial(id);
             ui.mostrar("Usuario eliminado (baja logica).");
         } catch (PersistenciaException | RegistroNoEncontradoException e) {
             ui.error("Error al eliminar usuario: " + e.getMessage());
         }
     }
+
 }
