@@ -57,7 +57,7 @@ public class CredencialAccesoDao implements GenericDao<CredencialAcceso> {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 CredencialAcceso c = new CredencialAcceso();
-                c.setId(rs.getLong("id"));
+                c.setId(rs.getLong("id_CredencialAcceso"));
                 c.setHashPassword(rs.getString("hashPassword"));
                 c.setSalt(rs.getString("salt"));
                 c.setUltimoCambio(rs.getTimestamp("ultimoCambio").toLocalDateTime());
