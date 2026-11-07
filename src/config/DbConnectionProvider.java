@@ -17,25 +17,23 @@ import java.util.Properties;
  *   2. Archivo db.properties (claves db.url, db.user, db.password),
  *      en la raíz del proyecto o en la ruta indicada con -Ddb.config=RUTA.
  */
-public class DatabaseConnection {
+public class DbConnectionProvider implements ConnectionProvider {
 
     private static final String ARCHIVO_POR_DEFECTO = "db.properties";
 
-    private static String url;
-    private static String user;
-    private static String password;
+    private String url;
+    private String user;
+    private String password;
 
-    private DatabaseConnection() {
-    }
-
-    public static Connection getConnection() throws SQLException {
+    @Override
+    public Connection getConnection() throws SQLException {
         if (url == null) {
             cargarConfiguracion();
         }
         return DriverManager.getConnection(url, user, password);
     }
 
-    private static synchronized void cargarConfiguracion() throws SQLException {
+    private synchronized void cargarConfiguracion() throws SQLException {
         if (url != null) {
             return;
         }
@@ -56,7 +54,7 @@ public class DatabaseConnection {
         url = urlLeida;
     }
 
-    private static String obtener(String variableEntorno, String clave, Properties archivo) {
+    private String obtener(String variableEntorno, String clave, Properties archivo) {
         String valor = System.getenv(variableEntorno);
         if (valor != null) {
             return valor;
@@ -64,7 +62,7 @@ public class DatabaseConnection {
         return archivo.getProperty(clave);
     }
 
-    private static Properties leerArchivo() throws SQLException {
+    private Properties leerArchivo() throws SQLException {
         Properties props = new Properties();
         Path ruta = Paths.get(System.getProperty("db.config", ARCHIVO_POR_DEFECTO));
         if (!Files.exists(ruta)) {
