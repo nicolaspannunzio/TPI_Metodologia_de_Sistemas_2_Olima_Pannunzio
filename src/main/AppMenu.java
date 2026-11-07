@@ -18,10 +18,11 @@ public class AppMenu {
     private final ConsolaUI ui;
     private final UsuarioService usuarioService;
 
-    public AppMenu(ConsolaUI ui) {
+    public AppMenu(ConsolaUI ui, UsuarioService usuarioService) {
         this.ui = ui;
-        this.usuarioService = new UsuarioService();
+        this.usuarioService = usuarioService;
     }
+
 
 
     public void mostrarMenu() {

@@ -1,6 +1,6 @@
 package service;
 
-import config.DatabaseConnection;
+import config.ConnectionProvider;
 import dao.CredencialAccesoDao;
 import dao.UsuarioDao;
 import entities.CredencialAcceso;
@@ -14,6 +14,11 @@ import service.exceptions.PersistenciaException;
 import service.exceptions.RegistroNoEncontradoException;
 
 public class UsuarioService implements GenericService<Usuario> {
+    private final ConnectionProvider conexiones;
+
+    public UsuarioService(ConnectionProvider conexiones) {
+        this.conexiones = conexiones;
+    }
 
     private static final String USERNAME_REGEX = "^[a-zA-Z0-9_.-]{4,30}$";
     private static final String EMAIL_REGEX = "^(?=.{1,120}$)[\\w\\.-]+@([\\w\\-]+\\.)+[a-zA-Z]{2,4}$";
@@ -42,7 +47,7 @@ public class UsuarioService implements GenericService<Usuario> {
         validarEmail(usuario.getEmail());
         validarUsername(usuario.getUsername());
 
-        try (Connection conn = DatabaseConnection.getConnection()) {
+        try (Connection conn = conexiones.getConnection()) {
             conn.setAutoCommit(false);
             try {
                 CredencialAccesoDao credencialDao = new CredencialAccesoDao(conn);
@@ -68,7 +73,7 @@ public class UsuarioService implements GenericService<Usuario> {
 
     @Override
     public Usuario getById(long id) {
-        try (Connection conn = DatabaseConnection.getConnection()) {
+        try (Connection conn = conexiones.getConnection()) {
             return new UsuarioDao(conn).leer(id);
         } catch (SQLException e) {
             throw new PersistenciaException("No se pudo leer el usuario con id " + id + ".", e);
@@ -77,7 +82,7 @@ public class UsuarioService implements GenericService<Usuario> {
 
     @Override
     public List<Usuario> getAll() {
-        try (Connection conn = DatabaseConnection.getConnection()) {
+        try (Connection conn = conexiones.getConnection()) {
             return new UsuarioDao(conn).leerTodos();
         } catch (SQLException e) {
             throw new PersistenciaException("No se pudo listar los usuarios.", e);
@@ -88,7 +93,7 @@ public class UsuarioService implements GenericService<Usuario> {
     public void actualizar(Usuario usuario) {
         validarEmail(usuario.getEmail());
 
-        try (Connection conn = DatabaseConnection.getConnection()) {
+        try (Connection conn = conexiones.getConnection()) {
             new UsuarioDao(conn).actualizar(usuario);
         } catch (SQLException e) {
             throw new PersistenciaException("No se pudo actualizar el usuario.", e);
@@ -101,7 +106,7 @@ public class UsuarioService implements GenericService<Usuario> {
             throw new RegistroNoEncontradoException("El usuario no tiene una credencial asociada.");
         }
 
-        try (Connection conn = DatabaseConnection.getConnection()) {
+        try (Connection conn = conexiones.getConnection()) {
             conn.setAutoCommit(false);
             try {
                 UsuarioDao usuarioDao = new UsuarioDao(conn);
@@ -128,7 +133,7 @@ public class UsuarioService implements GenericService<Usuario> {
 
     @Override
         public void eliminar(long id) {
-        try (Connection conn = DatabaseConnection.getConnection()) {
+        try (Connection conn = conexiones.getConnection()) {
             new UsuarioDao(conn).eliminar(id);
         } catch (SQLException e) {
             throw new PersistenciaException("No se pudo eliminar el usuario.", e);
@@ -136,7 +141,7 @@ public class UsuarioService implements GenericService<Usuario> {
     }
 
     public void eliminarConCredencial(long idUsuario) {
-        try (Connection conn = DatabaseConnection.getConnection()) {
+        try (Connection conn = conexiones.getConnection()) {
             conn.setAutoCommit(false);
             try {
                 UsuarioDao usuarioDao = new UsuarioDao(conn);
