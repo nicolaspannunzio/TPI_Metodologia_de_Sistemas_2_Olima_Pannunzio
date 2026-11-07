@@ -7,15 +7,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UsuarioDao implements GenericDao<Usuario> {
+
+    private static final String COLUMNAS =
+            "id, username, email, activo, fechaRegistro, eliminado, id_CredencialAcceso";
+
     private final Connection conexion;
 
     public UsuarioDao(Connection conexion) {
         this.conexion = conexion;
     }
 
-    
     //️DECISIÓN DE DISEÑO: En todas las query se decidio ignorar/omitir a todos los usuarios que aparecen eliminados=true
-    
+
     @Override
     public void crear(Usuario usuario) throws SQLException {
         String sql = "INSERT INTO usuarios (username, email, activo, fechaRegistro, eliminado, id_CredencialAcceso) VALUES (?, ?, ?, ?, ?, ?)";
@@ -36,24 +39,13 @@ public class UsuarioDao implements GenericDao<Usuario> {
 
     @Override
     public Usuario leer(long id) throws SQLException {
-        String sql = "SELECT * FROM usuarios WHERE id = ? AND eliminado = false";
+        String sql = "SELECT " + COLUMNAS + " FROM usuarios WHERE id = ? AND eliminado = false";
         try (PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setLong(1, id);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                Usuario u = new Usuario();
-                u.setId(rs.getLong("id"));
-                u.setUsername(rs.getString("username"));
-                u.setEmail(rs.getString("email"));
-                u.setActivo(rs.getBoolean("activo"));
-                u.setFechaRegistro(rs.getTimestamp("fechaRegistro").toLocalDateTime());
-                u.setEliminado(rs.getBoolean("eliminado"));
-
-                CredencialAcceso c = new CredencialAcceso();
-                c.setId(rs.getLong("id_CredencialAcceso"));
-                u.setCredencial(c);
-
-                return u;
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapearUsuario(rs);
+                }
             }
         }
         return null;
@@ -62,23 +54,11 @@ public class UsuarioDao implements GenericDao<Usuario> {
     @Override
     public List<Usuario> leerTodos() throws SQLException {
         List<Usuario> lista = new ArrayList<>();
-        String sql = "SELECT * FROM usuarios WHERE eliminado = false";
+        String sql = "SELECT " + COLUMNAS + " FROM usuarios WHERE eliminado = false";
         try (PreparedStatement ps = conexion.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                Usuario u = new Usuario();
-                u.setId(rs.getLong("id"));
-                u.setUsername(rs.getString("username"));
-                u.setEmail(rs.getString("email"));
-                u.setActivo(rs.getBoolean("activo"));
-                u.setFechaRegistro(rs.getTimestamp("fechaRegistro").toLocalDateTime());
-                u.setEliminado(rs.getBoolean("eliminado"));
-
-                CredencialAcceso c = new CredencialAcceso();
-                c.setId(rs.getLong("id_CredencialAcceso"));
-                u.setCredencial(c);
-
-                lista.add(u);
+                lista.add(mapearUsuario(rs));
             }
         }
         return lista;
@@ -106,5 +86,21 @@ public class UsuarioDao implements GenericDao<Usuario> {
             ps.setLong(1, id);
             ps.executeUpdate();
         }
+    }
+
+    private Usuario mapearUsuario(ResultSet rs) throws SQLException {
+        Usuario u = new Usuario();
+        u.setId(rs.getLong("id"));
+        u.setUsername(rs.getString("username"));
+        u.setEmail(rs.getString("email"));
+        u.setActivo(rs.getBoolean("activo"));
+        u.setFechaRegistro(rs.getTimestamp("fechaRegistro").toLocalDateTime());
+        u.setEliminado(rs.getBoolean("eliminado"));
+
+        CredencialAcceso c = new CredencialAcceso();
+        c.setId(rs.getLong("id_CredencialAcceso"));
+        u.setCredencial(c);
+
+        return u;
     }
 }
